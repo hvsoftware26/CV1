@@ -1,3 +1,5 @@
+
+import os
 import random
 import numpy as np
 
@@ -11,6 +13,9 @@ from services.data_service import create_dataloaders
 from services.model_service import build_model
 
 
+OLD_BEST_F1 = 0.2657
+
+
 def set_seed(seed=42):
     random.seed(seed)
     np.random.seed(seed)
@@ -18,6 +23,21 @@ def set_seed(seed=42):
 
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(seed)
+
+
+def load_best_model_if_exists(model, device):
+
+    if os.path.exists(MODEL_PATH):
+        print("Found existing best_model.pth.")
+        print("Loading weights from:", MODEL_PATH)
+
+        model.load_state_dict(
+            torch.load(MODEL_PATH, map_location=device)
+        )
+        return True
+
+    print("No existing best_model.pth found")
+    return False
 
 
 def train_one_epoch(model, train_loader, criterion, optimizer, device, epoch):
@@ -106,6 +126,11 @@ def run_training():
         device=device
     )
 
+    loaded_old_model = load_best_model_if_exists(
+        model=model,
+        device=device
+    )
+
     criterion = nn.CrossEntropyLoss(
         weight=data["class_weights"]
     )
@@ -115,7 +140,12 @@ def run_training():
         lr=LR
     )
 
-    best_f1 = 0.0
+    if loaded_old_model:
+        best_f1 = OLD_BEST_F1
+        print("Continue training from old best model.")
+        print("Initial best_f1:", best_f1)
+    else:
+        best_f1 = 0.0
 
     for epoch in range(1, EPOCHS + 1):
         train_loss = train_one_epoch(

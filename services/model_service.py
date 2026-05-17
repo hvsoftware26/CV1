@@ -47,21 +47,13 @@ class SmallCNN_GRU(nn.Module):
         """
 
         batch_size, time_steps, c, h, w = x.shape
-
         x = x.view(batch_size * time_steps, c, h, w)
-
         features = self.cnn(x)
-
         features = features.view(batch_size, time_steps, 128)
-
         output, hidden = self.gru(features)
-
         last_hidden = hidden[-1]
-
         logits = self.classifier(last_hidden)
-
         return logits
-
 
 def build_model(num_classes, device):
     model = SmallCNN_GRU(num_classes=num_classes)
